@@ -92,6 +92,7 @@ question_randomiser/
 
 ## Production Links
 
+- Frontend URL: https://8747de93.question-randomizer-fullstack.pages.dev/
 - Backend health URL: https://question-randomizer-fullstack.onrender.com/
 - Backend questions API: https://question-randomizer-fullstack.onrender.com/questions
 
@@ -100,7 +101,7 @@ question_randomiser/
 ### Backend `.env` example for local development
 
 ```env
-PORT=3001
+PORT=3000
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
@@ -130,13 +131,19 @@ JWT_SECRET=your_secret_key
 ### Frontend `.env` example
 
 ```env
-VITE_API_URL=http://localhost:3001
+VITE_API_URL=http://localhost:3000
 ```
 
 ### Frontend production `.env` example
 
 ```env
 VITE_API_URL=https://question-randomizer-fullstack.onrender.com
+```
+
+### Backend CORS for production
+
+```env
+CORS_ORIGINS=https://your-project.pages.dev,https://yourdomain.com
 ```
 
 ## Local Installation
@@ -168,7 +175,7 @@ npm run dev
 Backend runs on:
 
 ```txt
-http://localhost:3001
+http://localhost:3000
 ```
 
 ## Database
@@ -190,8 +197,42 @@ This project uses:
 
 ### Frontend
 
-- ready to be deployed on Cloudflare Pages or Vercel
+- deployed on Cloudflare Pages
+- frontend URL: https://8747de93.question-randomizer-fullstack.pages.dev/
 - set `VITE_API_URL` to the Render backend URL
+
+## Deploy Frontend To Cloudflare Pages
+
+Cloudflare Pages can host the Vite frontend directly. This project is a SPA, and Cloudflare Pages serves SPA routes by default when there is no top-level `404.html`.
+
+### Recommended setup
+
+- Framework preset: `Vite`
+- Root directory: `frontend`
+- Build command: `npm run build`
+- Build output directory: `dist`
+
+### Frontend environment variable in Cloudflare
+
+Set this in Pages project settings:
+
+```env
+VITE_API_URL=https://your-backend-url
+```
+
+### Backend requirement
+
+If the backend stays on Render or another host, add the Cloudflare frontend domain to backend CORS:
+
+```env
+CORS_ORIGINS=https://your-project.pages.dev,https://yourdomain.com
+```
+
+### Important
+
+- The current backend uses `Express + Sequelize + MySQL`.
+- The easiest deployment path is: frontend on Cloudflare Pages, backend on Render.
+- Moving the backend itself to Cloudflare is a separate migration and would typically require adapting it for Workers and a Cloudflare-supported database connection flow such as Hyperdrive.
 
 ## Notes
 

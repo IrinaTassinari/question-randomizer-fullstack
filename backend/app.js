@@ -13,15 +13,30 @@ dotenv.config()
 
 const PORT = process.env.PORT || 3000
 const app = express()
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : null;
 
 app.use(express.json())
 
 //origin в cors должен указывать адрес фронтенда, который отправляет запросы, а не адрес самого backend
 
- app.use(cors()) 
-//app.use(cors({
-//  origin: ['http://localhost:8080', 'http://10.22.20.73:8080']
-//}))
+app.use(
+  cors(
+    allowedOrigins
+      ? {
+          origin(origin, callback) {
+            // Allow non-browser tools and same-origin requests without Origin header.
+            if (!origin || allowedOrigins.includes(origin)) {
+              return callback(null, true);
+            }
+
+            return callback(new Error("CORS origin not allowed"));
+          },
+        }
+      : undefined
+  )
+)
 
 
 //подключаем наш middleware для логирования запросов - говорит - используй эту ф-ю loggerMiddleware - это мы так middleware вызываем и в скобках - потому что не хотим, чтобы она сразу вызывалась
