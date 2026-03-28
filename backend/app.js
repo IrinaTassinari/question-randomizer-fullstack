@@ -4,9 +4,10 @@ import bcrypt from 'bcrypt';
 import sequelize from './config/db.js';
 import { errorHandler } from './controllers/errorMiddleware.js';
 import cors from 'cors'
-
 import authRoutes from './routes/authRoutes.js'
 import loggerMiddleware from './middlewares/loggerMiddleware.js'
+import questionRoutes from "./routes/questionRoutes.js";
+
 
 dotenv.config()
 
@@ -17,10 +18,10 @@ app.use(express.json())
 
 //origin в cors должен указывать адрес фронтенда, который отправляет запросы, а не адрес самого backend
 
-// app.use(cors()) - same 
-app.use(cors({
-  origin: ['http://localhost:8080', 'http://10.22.20.73:8080']
-}))
+ app.use(cors()) 
+//app.use(cors({
+//  origin: ['http://localhost:8080', 'http://10.22.20.73:8080']
+//}))
 
 
 //подключаем наш middleware для логирования запросов - говорит - используй эту ф-ю loggerMiddleware - это мы так middleware вызываем и в скобках - потому что не хотим, чтобы она сразу вызывалась
@@ -29,6 +30,7 @@ app.use(loggerMiddleware)
 //подключаем марщруты авторизации
 //authRoutes - объект, который будет содержать маршруты
 app.use('/auth', authRoutes)
+app.use("/questions", questionRoutes);
 
 
 // sequelize.authenticate()

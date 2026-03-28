@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { categories, type Category } from "@/data/questions";
 import { motion } from "framer-motion";
 import { Beaker, Leaf, TreePine, Dna, Bug, Heart, Shuffle, Microscope } from "lucide-react";
-import { getToken, removeToken } from "@/lib/auth";
+import { getCurrentUser, getToken, removeToken } from "@/lib/auth";
 
 const categoryIcons: Record<Category, React.ReactNode> = {
   Zoology: <Beaker className="w-7 h-7" />,
@@ -29,6 +29,7 @@ const categoryColors: Record<Category, string> = {
 const Index = () => {
   const navigate = useNavigate();
   const token = getToken();
+  const user = getCurrentUser();
 
   const handleCategory = (category: Category) => {
     navigate(`/quiz/${encodeURIComponent(category)}`);
@@ -77,12 +78,14 @@ const Index = () => {
         transition={{ delay: 0.8 }}
         className="mt-10 flex flex-wrap justify-center gap-4"
       >
-        <button
-          onClick={() => navigate("/add")}
-          className="text-slate-400 hover:text-white transition-colors text-sm underline underline-offset-4"
-        >
-          Add Questions
-        </button>
+        {user?.role === "teacher" && (
+          <button
+            onClick={() => navigate("/add")}
+            className="text-slate-400 hover:text-white transition-colors text-sm underline underline-offset-4"
+          >
+            Add Questions
+          </button>
+        )}
 
         {!token ? (
           <>

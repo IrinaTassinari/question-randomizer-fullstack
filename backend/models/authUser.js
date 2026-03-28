@@ -22,6 +22,11 @@ const User = sequelize.define('auth_user', {
         type: DataTypes.STRING,
         allowNull: false
     },
+    role: {
+        type: DataTypes.ENUM('teacher', 'student'),
+        allowNull: false,
+        defaultValue: 'student'
+    },
 }, {
     tableName: 'auth_users'
 });

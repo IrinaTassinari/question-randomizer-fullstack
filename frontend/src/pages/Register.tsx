@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { registerUser } from "@/lib/auth-api";
-import { setToken } from "@/lib/auth";
+import { setCurrentUser, setToken } from "@/lib/auth";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -10,6 +10,7 @@ const Register = () => {
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+    const [role, setRole] = useState<"teacher" | "student">("student");
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -19,8 +20,9 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const result = await registerUser({ username, email, password });
+      const result = await registerUser({ username, email, password, role });
       setToken(result.token);
+      setCurrentUser(result.user);
       navigate("/profile");
     } catch (err) {
       if (err instanceof Error) {
@@ -32,6 +34,7 @@ const Register = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex flex-col items-center px-4 py-8">
@@ -80,6 +83,35 @@ const Register = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-white/10 text-white border border-white/20 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
+          </div>
+
+          <div>
+            <label className="text-slate-300 text-sm font-semibold block mb-2">Role</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRole("student")}
+                className={`rounded-xl px-4 py-3 font-semibold transition-colors ${
+                  role === "student"
+                    ? "bg-sky-600 text-white"
+                    : "bg-white/10 text-slate-300 hover:bg-white/20"
+                }`}
+              >
+                Student
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRole("teacher")}
+                className={`rounded-xl px-4 py-3 font-semibold transition-colors ${
+                  role === "teacher"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-white/10 text-slate-300 hover:bg-white/20"
+                }`}
+              >
+                Teacher
+              </button>
+            </div>
           </div>
 
           {error && (

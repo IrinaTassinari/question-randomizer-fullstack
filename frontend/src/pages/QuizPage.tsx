@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { type Category, type Difficulty, type Question } from "@/data/questions";
 import { useQuestions } from "@/hooks/useQuestions";
 import { ArrowLeft, Eye, RefreshCw } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
+
 
 const difficultyColors: Record<Difficulty, string> = {
   Easy: "from-green-500 to-emerald-600",
@@ -14,7 +16,9 @@ const difficultyColors: Record<Difficulty, string> = {
 const QuizPage = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
-  const { getRandomQuestion } = useQuestions();
+  const { getRandomQuestion, loading, error } = useQuestions();
+  const user = getCurrentUser();
+
 
   const decodedCategory = decodeURIComponent(category || "") as Category;
 
@@ -45,6 +49,25 @@ const QuizPage = () => {
   const handleNewQuestion = () => {
     if (difficulty) pickQuestion(difficulty);
   };
+
+  if (loading) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
+      <p className="text-slate-300 text-lg">Loading questions...</p>
+    </div>
+  );
+}
+
+if (error) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
+      <div className="max-w-lg w-full rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-red-300">
+        {error}
+      </div>
+    </div>
+  );
+}
+
 
   // Difficulty selection
   if (!difficulty) {
@@ -118,12 +141,6 @@ const QuizPage = () => {
               className="bg-white/5 rounded-3xl p-10 text-center"
             >
               <p className="text-slate-300 text-lg">No questions found for this category and difficulty.</p>
-              <button
-                onClick={() => navigate("/add")}
-                className="mt-4 text-sky-400 hover:text-sky-300 underline"
-              >
-                Add some questions
-              </button>
             </motion.div>
           ) : currentQuestion ? (
             <motion.div
@@ -188,6 +205,14 @@ const QuizPage = () => {
           >
             <RefreshCw className="w-5 h-5" /> New Question
           </button>
+          {user?.role === "teacher" && (
+            <button
+              onClick={() => navigate("/add")}
+              className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-lg rounded-xl px-8 py-4 transition-colors cursor-pointer"
+            >
+              Add Question
+            </button>
+          )}
           <button
             onClick={() => navigate("/")}
             className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-bold text-lg rounded-xl px-8 py-4 transition-colors cursor-pointer"

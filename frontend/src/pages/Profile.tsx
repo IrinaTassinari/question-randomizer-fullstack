@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { getProfile } from "@/lib/auth-api";
-import { getToken, removeToken } from "@/lib/auth";
+import { getToken, removeToken,  setCurrentUser } from "@/lib/auth";
 
 type User = {
   id: number;
   username: string;
   email: string;
+  role: "teacher" | "student";
 };
 
 const Profile = () => {
@@ -29,6 +30,7 @@ const Profile = () => {
       try {
         const result = await getProfile(token);
         setUser(result.user);
+        setCurrentUser(result.user);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message);
@@ -97,6 +99,11 @@ const Profile = () => {
             <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-4">
               <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">Email</p>
               <p className="text-white text-lg font-semibold">{user.email}</p>
+            </div>
+
+            <div className="rounded-2xl bg-white/5 border border-white/10 px-4 py-4">
+              <p className="text-slate-400 text-xs uppercase tracking-wider mb-1">Role</p>
+              <p className="text-white text-lg font-semibold capitalize">{user.role}</p>
             </div>
           </div>
 

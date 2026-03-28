@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { signInUser } from "@/lib/auth-api";
-import { setToken } from "@/lib/auth";
+import { setCurrentUser, setToken } from "@/lib/auth";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ const SignIn = () => {
     try {
       const result = await signInUser({ email, password });
       setToken(result.token);
+      setCurrentUser(result.user);
       navigate("/profile");
     } catch (err) {
       if (err instanceof Error) {

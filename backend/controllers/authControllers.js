@@ -6,7 +6,7 @@ import generateToken from "../utils/generateToken.js";
 
 // user register для регистрации
 export async function register(req, res, next) {
-  const { username, email, password } = req.body;
+  const { username, email, password, role } = req.body;
 
   try {
     if(!username || !email || !password){
@@ -25,6 +25,12 @@ export async function register(req, res, next) {
         return res.status(400).json({
             message: "Password must be at least 6 characters"
         })
+    }
+
+    if (role && !["teacher", "student"].includes(role)) {
+      return res.status(400).json({
+        message: "Role must be either teacher or student",
+      });
     }
 
     const existingEmail = await authUsers.findOne({
@@ -53,6 +59,7 @@ export async function register(req, res, next) {
       username,
       email,
       password: hashedPassword,
+      role: role || "student",
     });
 
     //generating JWT
@@ -61,6 +68,12 @@ export async function register(req, res, next) {
     res.status(201).json({
       message: "User registered successfully",
       token,
+      user: {
+        id: newUser.id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
     });
   } catch (error) {
     next(error);
@@ -72,6 +85,12 @@ export async function signIn(req, res, next) {
   const { email, password } = req.body;
 
   try {
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
     //const user = users.find((user) => user.email === email)
     //const user = authUsers.findOne((user) => user.email === email)
 
@@ -100,6 +119,12 @@ export async function signIn(req, res, next) {
     res.json({
       message: "Login successful",
       token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     next(error);
@@ -117,7 +142,7 @@ export async function signIn(req, res, next) {
 export async function getProfile(req, res, next) {
   try {
     const user = await authUsers.findByPk(req.user.id, {
-      attributes: ["id", "username", "email"],
+      attributes: ["id", "username", "email", "role"],
     });
 
     if (!user) {

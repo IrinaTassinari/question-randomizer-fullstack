@@ -4,6 +4,7 @@ export async function registerUser(data: {
   username: string;
   email: string;
   password: string;
+  role: "teacher" | "student";
 }) {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
@@ -21,7 +22,6 @@ export async function registerUser(data: {
 
   return result;
 }
-
 
 export async function signInUser(data: {
   email: string;
@@ -44,7 +44,6 @@ export async function signInUser(data: {
   return result;
 }
 
-
 export async function getProfile(token: string) {
   const res = await fetch(`${API_URL}/auth/profile`, {
     headers: {
@@ -56,6 +55,45 @@ export async function getProfile(token: string) {
 
   if (!res.ok) {
     throw new Error(result.message || "Failed to load profile");
+  }
+
+  return result;
+}
+
+export async function fetchQuestions() {
+  const res = await fetch(`${API_URL}/questions`);
+  const result = await res.json();
+
+  if (!res.ok) {
+    throw new Error(result.message || "Failed to load questions");
+  }
+
+  return result;
+}
+
+export async function createQuestion(
+  token: string,
+  data: {
+    category: string;
+    difficulty: "Easy" | "Medium" | "Hard";
+    question: string;
+    answer: string;
+    explanation: string;
+  }
+) {
+  const res = await fetch(`${API_URL}/questions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  const result = await res.json();
+
+  if (!res.ok) {
+    throw new Error(result.message || "Failed to create question");
   }
 
   return result;
