@@ -1,6 +1,6 @@
 # Biology Q&A Bot
 
-Fullstack project with a biology question randomizer frontend and a Node.js authentication backend.
+Fullstack biology question randomizer with role-based authentication and a shared MySQL question bank.
 
 ## Stack
 
@@ -29,7 +29,7 @@ Fullstack project with a biology question randomizer frontend and a Node.js auth
 ## Project Structure
 
 ```bash
-biology-q-a-bot-main/
+question_randomiser/
   frontend/
     src/
     package.json
@@ -41,6 +41,7 @@ biology-q-a-bot-main/
     migrations/
     models/
     routes/
+    seeders/
     utils/
     app.js
     package.json
@@ -54,11 +55,9 @@ biology-q-a-bot-main/
 
 - browse biology categories
 - generate random questions by category and difficulty
-- add questions locally in the browser
-- optional authentication UI:
-  - register
-  - sign in
-  - profile
+- register and sign in
+- view profile with role
+- teacher-only access to add new questions
 
 ### Backend
 
@@ -66,13 +65,19 @@ biology-q-a-bot-main/
 - user sign in
 - JWT token generation
 - protected profile route
-- MySQL-based user storage
+- role-based authorization (`teacher` / `student`)
+- MySQL-based storage for users and questions
+
+## Roles
+
+- `teacher` can add new questions
+- `student` can browse and answer questions, but cannot add them
 
 ## Frontend Routes
 
 - `/` - home page
 - `/quiz/:category` - quiz page
-- `/add` - add question page
+- `/add` - add question page, teacher only
 - `/register` - registration page
 - `/signin` - sign in page
 - `/profile` - user profile page
@@ -82,31 +87,59 @@ biology-q-a-bot-main/
 - `POST /auth/register`
 - `POST /auth/signin`
 - `GET /auth/profile`
+- `GET /questions`
+- `POST /questions`
+
+## Production Links
+
+- Backend health URL: https://question-randomizer-fullstack.onrender.com/
+- Backend questions API: https://question-randomizer-fullstack.onrender.com/questions
 
 ## Environment Variables
 
-Backend `.env` example:
+### Backend `.env` example for local development
 
 ```env
-PORT=3000
+PORT=3001
+DB_HOST=127.0.0.1
+DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME_DEV=auth_jwt_db
 DB_NAME_TEST=database_test
 DB_NAME_PROD=database_production
-DB_HOST=127.0.0.1
 DB_DIALECT=mysql
 NODE_ENV=development
 JWT_SECRET=your_secret_key
 ```
 
-Frontend `.env` example:
+### Backend environment variables for cloud MySQL / Render
 
 ```env
-VITE_API_URL=http://localhost:3000
+NODE_ENV=production
+PORT=10000
+DB_HOST=your-aiven-host
+DB_PORT=your-aiven-port
+DB_USER=your-aiven-user
+DB_PASSWORD=your-aiven-password
+DB_NAME_PROD=defaultdb
+DB_DIALECT=mysql
+JWT_SECRET=your_secret_key
 ```
 
-## Installation
+### Frontend `.env` example
+
+```env
+VITE_API_URL=http://localhost:3001
+```
+
+### Frontend production `.env` example
+
+```env
+VITE_API_URL=https://question-randomizer-fullstack.onrender.com
+```
+
+## Local Installation
 
 ### Frontend
 
@@ -128,20 +161,43 @@ http://localhost:8080
 cd backend
 npm install
 npx sequelize-cli db:migrate
+npx sequelize-cli db:seed:all
 npm run dev
 ```
 
 Backend runs on:
 
 ```txt
-http://localhost:3000
+http://localhost:3001
 ```
+
+## Database
+
+Questions are stored in MySQL, not in `localStorage`.
+
+This project uses:
+
+- migrations to create tables
+- seeders to load the initial biology question bank
+- Aiven MySQL as the cloud database in production
+
+## Deployment
+
+### Backend
+
+- deployed on Render
+- connected to Aiven MySQL
+
+### Frontend
+
+- ready to be deployed on Cloudflare Pages or Vercel
+- set `VITE_API_URL` to the Render backend URL
 
 ## Notes
 
-- the randomizer works without registration
-- authentication is optional and used for register/sign in/profile flow
-- questions are currently stored on the frontend side in `localStorage`
+- if you seed the database, quiz questions are loaded from MySQL
+- if the database is empty, the quiz page will show `No questions found for this category and difficulty.`
+- CORS should be restricted to the frontend production domain after deployment
 
 ## Postman
 
