@@ -26,6 +26,14 @@ Fullstack biology question randomizer with role-based authentication and a share
 - dotenv
 - cors
 
+### Infrastructure
+
+- AWS RDS MySQL
+- AWS EC2
+- Nginx
+- PM2
+- AWS Amplify Hosting
+
 ## Project Structure
 
 ```bash
@@ -90,11 +98,23 @@ question_randomiser/
 - `GET /questions`
 - `POST /questions`
 
-## Production Links
+## Current Deployment
 
-- Frontend URL: https://8747de93.question-randomizer-fullstack.pages.dev/
-- Backend health URL: https://question-randomizer-fullstack.onrender.com/
-- Backend questions API: https://question-randomizer-fullstack.onrender.com/questions
+### Database
+
+- AWS RDS MySQL
+- database name: `question_randomiser`
+
+### Backend
+
+- AWS EC2
+- Node.js app managed with `pm2`
+- Nginx reverse proxy in front of Express
+
+### Frontend
+
+- AWS Amplify Hosting
+- build root: `frontend`
 
 ## Environment Variables
 
@@ -102,31 +122,33 @@ question_randomiser/
 
 ```env
 PORT=3000
+NODE_ENV=development
+
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASSWORD=your_password
-DB_NAME_DEV=auth_jwt_db
+DB_NAME_DEV=question_randomiser
 DB_NAME_TEST=database_test
-DB_NAME_PROD=database_production
+DB_NAME_PROD=question_randomiser
 DB_DIALECT=mysql
-NODE_ENV=development
+
 JWT_SECRET=your_secret_key
 ```
 
-### Backend environment variables for cloud MySQL / Render
+### Backend `.env` example for AWS EC2 + RDS
 
 ```env
+PORT=3000
 NODE_ENV=production
-PORT=10000
-DB_HOST=your-aiven-host
-DB_PORT=your-aiven-port
-DB_USER=your-aiven-user
-DB_PASSWORD=your-aiven-password
-DB_NAME_PROD=defaultdb
+
+DB_HOST=your-rds-endpoint
+DB_PORT=3306
+DB_USER=admin
+DB_PASSWORD=your_rds_password
+DB_NAME_PROD=question_randomiser
 DB_DIALECT=mysql
-JWT_SECRET=your_secret_key
-CORS_ORIGINS=https://your-project.pages.dev,https://yourdomain.com
+
 DB_SSL=true
 DB_SSL_REJECT_UNAUTHORIZED=false
 DB_CONNECT_TIMEOUT_MS=10000
@@ -135,25 +157,23 @@ DB_POOL_MIN=0
 DB_POOL_ACQUIRE_MS=30000
 DB_POOL_IDLE_MS=10000
 DB_RETRY_MAX=3
+
+JWT_SECRET=your_secret_key
+CORS_ORIGINS=https://your-frontend-domain
 ```
 
-### Frontend `.env` example
+### Frontend `.env` example for local development
 
 ```env
 VITE_API_URL=http://localhost:3000
-```
-
-### Frontend production `.env` example
-
-```env
-VITE_API_URL=https://question-randomizer-fullstack.onrender.com
 VITE_API_TIMEOUT_MS=10000
 ```
 
-### Backend CORS for production
+### Frontend environment variables for AWS Amplify
 
 ```env
-CORS_ORIGINS=https://your-project.pages.dev,https://yourdomain.com
+VITE_API_URL=https://your-api-domain
+VITE_API_TIMEOUT_MS=10000
 ```
 
 ## Local Installation
@@ -177,8 +197,7 @@ http://localhost:8080
 ```bash
 cd backend
 npm install
-npx sequelize-cli db:migrate
-npx sequelize-cli db:seed:all
+npm run db:migrate
 npm run dev
 ```
 
@@ -188,67 +207,115 @@ Backend runs on:
 http://localhost:3000
 ```
 
-## Database
+## Database Setup
 
-Questions are stored in MySQL, not in `localStorage`.
+### Run migrations
 
-This project uses:
-
-- migrations to create tables
-- seeders to load the initial biology question bank
-- Aiven MySQL as the cloud database in production
-
-## Deployment
-
-### Backend
-
-- deployed on Render
-- connected to Aiven MySQL
-
-### Frontend
-
-- deployed on Cloudflare Pages
-- frontend URL: https://8747de93.question-randomizer-fullstack.pages.dev/
-- set `VITE_API_URL` to the Render backend URL
-
-## Deploy Frontend To Cloudflare Pages
-
-Cloudflare Pages can host the Vite frontend directly. This project is a SPA, and Cloudflare Pages serves SPA routes by default when there is no top-level `404.html`.
-
-### Recommended setup
-
-- Framework preset: `Vite`
-- Root directory: `frontend`
-- Build command: `npm run build`
-- Build output directory: `dist`
-
-### Frontend environment variable in Cloudflare
-
-Set this in Pages project settings:
-
-```env
-VITE_API_URL=https://your-backend-url
+```bash
+cd backend
+npm run db:migrate
 ```
 
-### Backend requirement
+### Seed default questions
 
-If the backend stays on Render or another host, add the Cloudflare frontend domain to backend CORS:
+The seed requires at least one existing user in `auth_users`.
 
-```env
-CORS_ORIGINS=https://your-project.pages.dev,https://yourdomain.com
+Recommended order:
+
+1. run migrations
+2. register at least one user, ideally a `teacher`
+3. run the seed
+
+```bash
+cd backend
+npm run db:seed:all
 ```
 
-### Important
+## EC2 Backend Setup
 
-- The current backend uses `Express + Sequelize + MySQL`.
-- The easiest deployment path is: frontend on Cloudflare Pages, backend on Render.
-- Moving the backend itself to Cloudflare is a separate migration and would typically require adapting it for Workers and a Cloudflare-supported database connection flow such as Hyperdrive.
+### Install dependencies on EC2
 
-## Notes
+```bash
+sudo dnf update -y
+sudo dnf install -y nodejs git nginx
+sudo npm install -g pm2
+```
 
-- if you seed the database, quiz questions are loaded from MySQL
-- if the database is empty, the quiz page will show `No questions found for this category and difficulty.`
-- CORS should be restricted to the frontend production domain after deployment
+### Start backend with PM2
+
+```bash
+cd ~/question-randomizer-fullstack/backend
+npm install
+pm2 start app.js --name question-randomiser-backend
+pm2 save
+```
+
+### Nginx reverse proxy
+
+Example config:
+
+```nginx
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+After saving the config:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+## Amplify Frontend Setup
+
+Recommended Amplify settings for this repository:
+
+- deploy type: GitHub
+- branch: `main`
+- monorepo: enabled
+- monorepo root directory: `frontend`
+- build command: `npm run build`
+- build output directory: `dist`
+
+Recommended environment variables:
+
+```env
+VITE_API_URL=https://your-api-domain
+VITE_API_TIMEOUT_MS=10000
+```
+
+## Important Notes
+
+- The frontend can work against an HTTP backend only in local development.
+- A production frontend hosted on Amplify uses HTTPS, so the backend should also be exposed over HTTPS to avoid mixed-content errors.
+- For production, the recommended setup is:
+  - frontend on Amplify
+  - backend on EC2 behind Nginx
+  - database on RDS
+  - custom domain for the API, for example `api.yourdomain.com`
+  - SSL certificate for the API domain
+
+## Verification Checklist
+
+- `http://localhost:3000/` returns `Server is running` in local development
+- `GET /questions` returns JSON from MySQL
+- frontend can register and sign in
+- teacher can create questions
+- Amplify frontend points to the correct backend URL
+- backend `CORS_ORIGINS` matches the frontend production domain
 
 ## Postman
 
