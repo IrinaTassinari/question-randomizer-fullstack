@@ -126,6 +126,15 @@ DB_PASSWORD=your-aiven-password
 DB_NAME_PROD=defaultdb
 DB_DIALECT=mysql
 JWT_SECRET=your_secret_key
+CORS_ORIGINS=https://your-project.pages.dev,https://yourdomain.com
+DB_SSL=true
+DB_SSL_REJECT_UNAUTHORIZED=false
+DB_CONNECT_TIMEOUT_MS=10000
+DB_POOL_MAX=10
+DB_POOL_MIN=0
+DB_POOL_ACQUIRE_MS=30000
+DB_POOL_IDLE_MS=10000
+DB_RETRY_MAX=3
 ```
 
 ### Frontend `.env` example
@@ -138,6 +147,7 @@ VITE_API_URL=http://localhost:3000
 
 ```env
 VITE_API_URL=https://question-randomizer-fullstack.onrender.com
+VITE_API_TIMEOUT_MS=10000
 ```
 
 ### Backend CORS for production

@@ -8,25 +8,26 @@ export function useQuestions() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
 
-  useEffect(() => {
-    const loadQuestions = async () => {
-      try {
-        setLoading(true);
-        const result = await fetchQuestions();
-        setQuestions(result);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Failed to load questions");
-        }
-      } finally {
-        setLoading(false);
+  const loadQuestions = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const result = await fetchQuestions();
+      setQuestions(result);
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Failed to load questions");
       }
-    };
-
-    loadQuestions();
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void loadQuestions();
+  }, [loadQuestions]);
 
   const questionCount = questions.length;
 
@@ -55,5 +56,6 @@ const getRandomQuestion = useCallback(
     questionCount,
     loading,
     error,
+    reloadQuestions: loadQuestions,
   };
 }

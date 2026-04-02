@@ -13,9 +13,26 @@ dotenv.config()
 
 const PORT = process.env.PORT || 3000
 const app = express()
+const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = process.env.CORS_ORIGINS
   ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
-  : null;
+  : [];
+
+function isOriginAllowed(origin) {
+  if (!origin) {
+    return true;
+  }
+
+  if (!isProduction && /^(http:\/\/localhost|http:\/\/127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    return true;
+  }
+
+  if (!allowedOrigins.length) {
+    return !isProduction;
+  }
+
+  return allowedOrigins.includes(origin);
+}
 
 app.use(express.json())
 
@@ -23,18 +40,19 @@ app.use(express.json())
 
 app.use(
   cors(
-    allowedOrigins
-      ? {
-          origin(origin, callback) {
-            // Allow non-browser tools and same-origin requests without Origin header.
-            if (!origin || allowedOrigins.includes(origin)) {
-              return callback(null, true);
-            }
-
-            return callback(new Error("CORS origin not allowed"));
-          },
+    {
+      origin(origin, callback) {
+        if (isOriginAllowed(origin)) {
+          return callback(null, true);
         }
-      : undefined
+
+        const corsError = new Error(`CORS origin not allowed: ${origin}`);
+        corsError.status = 403;
+        return callback(corsError);
+      },
+      methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      optionsSuccessStatus: 204,
+    }
   )
 )
 

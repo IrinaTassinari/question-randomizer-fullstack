@@ -16,7 +16,7 @@ const difficultyColors: Record<Difficulty, string> = {
 const QuizPage = () => {
   const { category } = useParams<{ category: string }>();
   const navigate = useNavigate();
-  const { getRandomQuestion, loading, error } = useQuestions();
+  const { getRandomQuestion, loading, error, reloadQuestions, questionCount: totalQuestions } = useQuestions();
   const user = getCurrentUser();
 
 
@@ -43,31 +43,17 @@ const QuizPage = () => {
 
   const handleDifficulty = (diff: Difficulty) => {
     setDifficulty(diff);
+
+    if (loading) {
+      return;
+    }
+
     pickQuestion(diff);
   };
 
   const handleNewQuestion = () => {
-    if (difficulty) pickQuestion(difficulty);
+    if (difficulty && !loading) pickQuestion(difficulty);
   };
-
-  if (loading) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
-      <p className="text-slate-300 text-lg">Loading questions...</p>
-    </div>
-  );
-}
-
-if (error) {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center px-4">
-      <div className="max-w-lg w-full rounded-3xl border border-red-500/30 bg-red-500/10 p-8 text-red-300">
-        {error}
-      </div>
-    </div>
-  );
-}
-
 
   // Difficulty selection
   if (!difficulty) {
@@ -80,8 +66,22 @@ if (error) {
         >
           <p className="text-slate-400 text-sm uppercase tracking-widest mb-2">Category</p>
           <h1 className="text-3xl md:text-5xl font-extrabold text-white mb-6">{decodedCategory}</h1>
-          <p className="text-lg text-slate-300">Select Difficulty</p>
+          <p className="text-lg text-slate-300">
+            {loading ? "Loading question bank..." : "Select Difficulty"}
+          </p>
         </motion.div>
+
+        {error && (
+          <div className="max-w-lg w-full rounded-3xl border border-red-500/30 bg-red-500/10 p-5 text-red-300 mb-6 text-center">
+            <p className="mb-3">{error}</p>
+            <button
+              onClick={() => void reloadQuestions()}
+              className="rounded-xl bg-red-500/20 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500/30 transition-colors"
+            >
+              Retry Loading
+            </button>
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-4 md:gap-6">
           {(["Easy", "Medium", "Hard"] as Difficulty[]).map((diff, i) => (
@@ -93,7 +93,8 @@ if (error) {
               whileHover={{ scale: 1.08 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleDifficulty(diff)}
-              className={`bg-gradient-to-br ${difficultyColors[diff]} text-white font-bold text-xl md:text-2xl rounded-2xl px-12 py-6 shadow-lg hover:shadow-2xl transition-shadow cursor-pointer`}
+              disabled={loading || !!error}
+              className={`bg-gradient-to-br ${difficultyColors[diff]} text-white font-bold text-xl md:text-2xl rounded-2xl px-12 py-6 shadow-lg hover:shadow-2xl transition-shadow cursor-pointer disabled:cursor-not-allowed disabled:opacity-60`}
             >
               {diff}
             </motion.button>
@@ -128,8 +129,22 @@ if (error) {
               {difficulty}
             </span>
           </div>
-          <span className="text-slate-500 text-sm">#{questionCount}</span>
+          <span className="text-slate-500 text-sm">
+            #{questionCount} {loading ? "- updating..." : totalQuestions > 0 ? `- ${totalQuestions} loaded` : ""}
+          </span>
         </motion.div>
+
+        {error && (
+          <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200">
+            <p className="mb-3 text-sm">{error}</p>
+            <button
+              onClick={() => void reloadQuestions()}
+              className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+            >
+              Retry Loading
+            </button>
+          </div>
+        )}
 
         <AnimatePresence mode="wait">
           {noQuestions ? (
@@ -201,9 +216,10 @@ if (error) {
           )}
           <button
             onClick={handleNewQuestion}
-            className="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-lg rounded-xl px-8 py-4 shadow-lg transition-colors cursor-pointer"
+            disabled={loading}
+            className="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-500 disabled:opacity-70 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl px-8 py-4 shadow-lg transition-colors cursor-pointer"
           >
-            <RefreshCw className="w-5 h-5" /> New Question
+            <RefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} /> New Question
           </button>
           {user?.role === "teacher" && (
             <button
