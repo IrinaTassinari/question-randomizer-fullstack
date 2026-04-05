@@ -28,11 +28,13 @@ Fullstack biology question randomizer with role-based authentication and a share
 
 ### Infrastructure
 
-- AWS RDS MySQL
+- AWS Amplify Hosting
 - AWS EC2
 - Nginx
 - PM2
-- AWS Amplify Hosting
+- AWS RDS MySQL
+- Namecheap DNS
+- Let's Encrypt / Certbot
 
 ## Project Structure
 
@@ -100,21 +102,27 @@ question_randomiser/
 
 ## Current Deployment
 
-### Database
+### Frontend
 
-- AWS RDS MySQL
-- database name: `question_randomiser`
+- AWS Amplify Hosting
+- current Amplify URL: `https://main.dh6pcwu1dbgpd.amplifyapp.com`
 
 ### Backend
 
 - AWS EC2
 - Node.js app managed with `pm2`
 - Nginx reverse proxy in front of Express
+- public API domain: `https://api.irinatassinari.com`
 
-### Frontend
+### Database
 
-- AWS Amplify Hosting
-- build root: `frontend`
+- AWS RDS MySQL
+- database name: `question_randomiser`
+
+### DNS
+
+- domain registrar: Namecheap
+- API subdomain points to EC2 public IP
 
 ## Environment Variables
 
@@ -136,7 +144,7 @@ DB_DIALECT=mysql
 JWT_SECRET=your_secret_key
 ```
 
-### Backend `.env` example for AWS EC2 + RDS
+### Backend `.env` example for EC2 + RDS
 
 ```env
 PORT=3000
@@ -159,7 +167,7 @@ DB_POOL_IDLE_MS=10000
 DB_RETRY_MAX=3
 
 JWT_SECRET=your_secret_key
-CORS_ORIGINS=https://your-frontend-domain
+CORS_ORIGINS=http://localhost:8080,https://main.dh6pcwu1dbgpd.amplifyapp.com
 ```
 
 ### Frontend `.env` example for local development
@@ -169,14 +177,14 @@ VITE_API_URL=http://localhost:3000
 VITE_API_TIMEOUT_MS=10000
 ```
 
-### Frontend environment variables for AWS Amplify
+### Amplify environment variables
 
 ```env
-VITE_API_URL=https://your-api-domain
+VITE_API_URL=https://api.irinatassinari.com
 VITE_API_TIMEOUT_MS=10000
 ```
 
-## Local Installation
+## Local Development
 
 ### Frontend
 
@@ -233,7 +241,7 @@ npm run db:seed:all
 
 ## EC2 Backend Setup
 
-### Install dependencies on EC2
+### Install dependencies
 
 ```bash
 sudo dnf update -y
@@ -248,6 +256,14 @@ cd ~/question-randomizer-fullstack/backend
 npm install
 pm2 start app.js --name question-randomiser-backend
 pm2 save
+```
+
+Useful commands:
+
+```bash
+pm2 status
+pm2 logs question-randomiser-backend --lines 100
+pm2 restart question-randomiser-backend
 ```
 
 ### Nginx reverse proxy
@@ -279,9 +295,44 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+## HTTPS for API
+
+The production frontend is hosted on HTTPS, so the backend API must also be served over HTTPS to avoid mixed-content errors.
+
+### DNS
+
+In Namecheap, create:
+
+- `A Record`
+  - `Host`: `api`
+  - `Value`: EC2 public IP
+  - `TTL`: `Automatic`
+
+### Open EC2 ports
+
+EC2 security group should allow:
+
+- `SSH` on `22`
+- `HTTP` on `80`
+- `HTTPS` on `443`
+
+### Install certificate with Certbot
+
+```bash
+sudo dnf install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d api.irinatassinari.com
+```
+
+After success, the API should respond on:
+
+```txt
+https://api.irinatassinari.com
+https://api.irinatassinari.com/questions
+```
+
 ## Amplify Frontend Setup
 
-Recommended Amplify settings for this repository:
+Recommended Amplify settings:
 
 - deploy type: GitHub
 - branch: `main`
@@ -293,29 +344,39 @@ Recommended Amplify settings for this repository:
 Recommended environment variables:
 
 ```env
-VITE_API_URL=https://your-api-domain
+VITE_API_URL=https://api.irinatassinari.com
 VITE_API_TIMEOUT_MS=10000
 ```
 
-## Important Notes
+### SPA rewrites and redirects
 
-- The frontend can work against an HTTP backend only in local development.
-- A production frontend hosted on Amplify uses HTTPS, so the backend should also be exposed over HTTPS to avoid mixed-content errors.
-- For production, the recommended setup is:
-  - frontend on Amplify
-  - backend on EC2 behind Nginx
-  - database on RDS
-  - custom domain for the API, for example `api.yourdomain.com`
-  - SSL certificate for the API domain
+Use this rewrite rule:
 
-## Verification Checklist
+```json
+[
+  {
+    "source": "/<*>",
+    "status": "404-200",
+    "target": "/index.html"
+  }
+]
+```
 
-- `http://localhost:3000/` returns `Server is running` in local development
-- `GET /questions` returns JSON from MySQL
-- frontend can register and sign in
-- teacher can create questions
-- Amplify frontend points to the correct backend URL
-- backend `CORS_ORIGINS` matches the frontend production domain
+## Production Checklist
+
+- `https://api.irinatassinari.com/` returns `Server is running`
+- `https://api.irinatassinari.com/questions` returns JSON
+- Amplify frontend loads quiz questions
+- registration and sign in work from Amplify
+- backend `CORS_ORIGINS` includes the current frontend origin
+- PM2 process is online
+- Nginx is active
+
+## Notes
+
+- Local frontend can use `http://localhost:3000` without HTTPS.
+- Production frontend on Amplify requires the API to be available over HTTPS.
+- Old Render and Cloudflare deployment URLs are no longer part of the active production setup.
 
 ## Postman
 
